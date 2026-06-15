@@ -44,3 +44,16 @@ def test_chmod_777_caution():
 def test_tokenize_rejects_shell_metachars():
     assert tokenize_safe("ls | grep x") is None
     assert tokenize_safe("ls -la /tmp") == ["ls", "-la", "/tmp"]
+
+
+def test_split_rm_flags_still_dangerous():
+    # Separated and long-form flags must not evade the rm -rf rule.
+    for cmd in ("rm -r -f /tmp/x", "rm -f -r /tmp/x", "rm --recursive --force /tmp/x"):
+        assert assess(cmd).level == DANGEROUS
+
+
+def test_firewall_flush_is_dangerous():
+    assert assess("iptables -F").level == DANGEROUS
+    assert assess("ufw reset").level == DANGEROUS
+    # A non-flushing firewall command is only caution.
+    assert assess("iptables -L").level == CAUTION
