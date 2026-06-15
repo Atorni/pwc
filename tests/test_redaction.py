@@ -43,3 +43,15 @@ def test_no_false_positive_on_plain_text():
     r = redact("nmap -sV 10.10.10.10")
     assert r.count == 0
     assert r.text == "nmap -sV 10.10.10.10"
+
+
+def test_nmap_port_flag_not_redacted():
+    # Regression: nmap's -p port flag must never be mistaken for a password.
+    for cmd in ("nmap -p80,443 10.0.0.5", "nmap -p- -sV host", "nmap -p 1-1000 h"):
+        assert redact(cmd).count == 0
+
+
+def test_db_client_password_flag_redacted():
+    r = redact("mysql -uroot -pSecret123 db")
+    assert "Secret123" not in r.text
+    assert "<REDACTED:PASSWORD>" in r.text

@@ -10,6 +10,7 @@ from pathlib import Path
 @dataclass
 class TargetKnowledge:
     target: str = ""
+    type: str = "host"
     hosts: list[str] = field(default_factory=list)
     ports: list[dict] = field(default_factory=list)   # {port, proto, service, version}
     urls: list[str] = field(default_factory=list)
@@ -24,7 +25,10 @@ class TargetKnowledge:
     def load(cls, path: Path) -> "TargetKnowledge":
         if path.exists():
             try:
-                return cls(**{**asdict(cls()), **json.loads(path.read_text("utf-8"))})
+                raw = json.loads(path.read_text("utf-8"))
+                # Tolerate (and drop) unknown keys so schema drift never wipes state.
+                known = {f for f in cls().__dataclass_fields__}
+                return cls(**{**asdict(cls()), **{k: v for k, v in raw.items() if k in known}})
             except (OSError, json.JSONDecodeError, TypeError):
                 pass
         return cls()

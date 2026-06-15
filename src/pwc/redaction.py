@@ -23,8 +23,13 @@ _PATTERNS: list[tuple[str, re.Pattern[str]]] = [
     ("ASSIGNED_SECRET", re.compile(
         r"(?i)\b(pass(?:word|wd)?|secret|token|api[_-]?key|access[_-]?key|"
         r"private[_-]?key|auth)\b\s*[=:]\s*['\"]?([^\s'\"]{4,})")),
-    # -p<password> style (mysql, etc.) - common in pentest commands.
-    ("INLINE_PW_FLAG", re.compile(r"(?<=\s)(-p|--password[= ])\S{3,}")),
+    # -p<password> style for DB/auth clients (mysql, psql, etc.). Scoped to those
+    # clients so nmap's `-p <ports>` flag is never mistaken for a secret.
+    ("INLINE_PW_FLAG", re.compile(
+        r"(?i)\b(?:mysql|mysqladmin|mariadb|mysqldump|psql|mongo|mongosh|redis-cli|"
+        r"smbclient|mosquitto_(?:pub|sub))\b[^\n]*?\s(-p)(\S{3,})")),
+    # Explicit long-form password flags for any tool.
+    ("PASSWORD_FLAG", re.compile(r"(?i)(--password[= ])(\S{3,})")),
 ]
 
 
@@ -46,9 +51,13 @@ def redact(text: str) -> RedactionResult:
             # Preserve the key name for assignment-style matches for context.
             if _label == "ASSIGNED_SECRET":
                 return f"{m.group(1)}=<REDACTED:{_label}>"
+            if _label == "PASSWORD_FLAG":
+                return f"{m.group(1)}<REDACTED:PASSWORD>"
             if _label == "INLINE_PW_FLAG":
-                flag = m.group(1)
-                return f"{flag}<REDACTED:PASSWORD>"
+                # Keep everything up to the password value (client, flags, the -p),
+                # redact only the secret itself.
+                head = m.group(0)[: m.start(2) - m.start(0)]
+                return f"{head}<REDACTED:PASSWORD>"
             return f"<REDACTED:{_label}>"
 
         out = pattern.sub(_sub, out)

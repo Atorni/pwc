@@ -157,13 +157,20 @@ def cmd_start(args, cfg, audit, policy) -> int:
         render.warn("tmux not installed; skipping workbench. "
                     "Install with: sudo apt install tmux")
         return 1
+    existed = tmuxmgr.session_exists(tmuxmgr.session_name(name, target))
     session = tmuxmgr.create(name, target, edir)
-    render.ok(f"tmux session ready: {session}")
+    render.ok(f"tmux session {'reattached' if existed else 'ready'}: {session}")
     for win, purpose in tmuxmgr.WINDOWS:
         render.kv(win, purpose)
     print()
-    render.info("Attach with:")
-    tmuxmgr.attach_or_print(session)
+    if args.no_attach:
+        render.info("Attach with:")
+        tmuxmgr.attach(session, auto=False)
+    else:
+        # Replaces this process with tmux when run from a normal terminal.
+        if not tmuxmgr.attach(session, auto=True):
+            render.info("Attach with:")
+            tmuxmgr.attach(session, auto=False)
     return 0
 
 
@@ -221,19 +228,23 @@ def cmd_fix(args, cfg, audit, policy) -> int:
 
 def cmd_next(args, cfg, audit, policy) -> int:
     name, target, _ = _active_engagement(cfg)
-    # Offline heuristic preview if we have target knowledge.
+    # Deterministic, offline heuristic preview based on recorded target knowledge.
+    # Shown for every provider - it never runs anything and grounds the model's
+    # suggestion in locally-known facts.
     if name and target:
         kp = ws.knowledge_path(cfg.workspace_root, name, target)
         k = knowledge.TargetKnowledge.load(kp)
         steps = heuristics.next_steps(k)
-        if steps and cfg.provider == "mock":
-            render.rule("Heuristic next steps (offline)")
+        if steps:
+            render.rule("Heuristic next steps (offline, deterministic)")
             for cmd, why in steps:
                 render.command_block(cmd)
                 render.kv("why", why)
                 print()
             render.info(AUTH_REMINDER)
+        if cfg.provider == "mock":
             return 0
+        render.rule("Model suggestion")
     ctx = collect(history_limit=cfg.history_limit)
     ctx_payload = ctx.to_dict(include_history=cfg.effective_history(),
                               history_limit=cfg.history_limit)
@@ -375,16 +386,20 @@ def cmd_history(args, cfg, audit, policy) -> int:
     render.rule("Audit history (local only)")
     for r in records:
         ev = r.get("event")
+        ts = r.get("ts", "")[-8:]
+        cmd = (r.get("command") or "")
         if ev == "suggestion":
-            render.kv(r.get("ts", "")[-8:], f"suggest [{r.get('risk')}] {r.get('command')[:70]}")
+            render.kv(ts, f"suggest [{r.get('risk')}] {cmd[:70]}")
         elif ev == "approval":
             mark = "yes" if r.get("approved") else "no"
-            render.kv(r.get("ts", "")[-8:], f"{mark} approval {r.get('command')[:60]}")
+            render.kv(ts, f"{mark} approval {cmd[:60]}")
         elif ev == "execution":
-            render.kv(r.get("ts", "")[-8:], f"ran (exit {r.get('exit_code')}) "
-                      f"{r.get('command')[:60]}")
+            render.kv(ts, f"ran (exit {r.get('exit_code')}) {cmd[:60]}")
         elif ev == "policy_block":
-            render.kv(r.get("ts", "")[-8:], f"BLOCKED {r.get('command')[:60]}")
+            render.kv(ts, f"BLOCKED {cmd[:60]}")
+        elif ev == "prompt_sent":
+            render.kv(ts, f"prompt -> {r.get('provider')} "
+                          f"({r.get('redactions', 0)} redacted) [{r.get('action')}]")
     render.rule()
     return 0
 
@@ -404,14 +419,40 @@ def cmd_status(args, cfg, audit, policy) -> int:
     return 0
 
 
-def cmd_resume(args, cfg, audit, policy) -> int:
-    sessions = tmuxmgr.list_sessions() if tmuxmgr.available() else []
+def cmd_kill(args, cfg, audit, policy) -> int:
+    if not tmuxmgr.available():
+        render.error("tmux not installed")
+        return 1
     name, target, _ = _active_engagement(cfg)
+    session = args.session or (tmuxmgr.session_name(name, target) if name else None)
+    if not session:
+        render.error("no session specified and no active engagement")
+        return 1
+    if tmuxmgr.kill(session):
+        render.ok(f"Killed tmux session: {session}")
+        return 0
+    render.warn(f"No such session: {session}")
+    return 1
+
+
+def cmd_resume(args, cfg, audit, policy) -> int:
+    name, target, _ = _active_engagement(cfg)
+    render.rule("Resume")
     render.kv("active", f"{name or '(none)'} / {target or '(none)'}")
-    if sessions:
-        render.info("tmux sessions:")
-        for s in sessions:
-            print(f"   tmux attach -t {s}")
+    infos = tmuxmgr.all_session_info() if tmuxmgr.available() else []
+    if not infos:
+        render.info("No pwc tmux sessions. Start one with `pwc start`.")
+        return 0
+    print()
+    for info in infos:
+        mark = f"{render.GREEN}attached{render.RESET}" if info.attached else f"{render.GREY}detached{render.RESET}"
+        render.kv(info.name, f"[{mark}] windows: {', '.join(info.windows)}")
+    # If exactly the active engagement's session is present, offer to jump in.
+    if name:
+        sess = tmuxmgr.session_name(name, target)
+        if any(i.name == sess for i in infos):
+            print()
+            render.info(f"Attach to the active session: pwc start  (or: tmux attach -t {sess})")
     return 0
 
 
@@ -510,7 +551,10 @@ def build_parser() -> argparse.ArgumentParser:
     ta = tsub.add_parser("add"); ta.add_argument("target")
     ta.add_argument("--type", default="host"); ta.set_defaults(func=cmd_target_add)
 
-    sub.add_parser("start", help="create/attach tmux workbench").set_defaults(func=cmd_start)
+    sp = sub.add_parser("start", help="create/attach the tmux workbench for the active target")
+    sp.add_argument("--no-attach", action="store_true",
+                    help="create the session but don't attach (just print the command)")
+    sp.set_defaults(func=cmd_start)
 
     sp = sub.add_parser("ask", help="natural language -> proposed command")
     sp.add_argument("query"); sp.set_defaults(func=cmd_ask)
@@ -530,7 +574,9 @@ def build_parser() -> argparse.ArgumentParser:
     sp.add_argument("command", nargs="?"); sp.set_defaults(func=cmd_review)
 
     sp = sub.add_parser("capture", help="capture the last command as evidence")
-    sp.add_argument("--tag", default="recon"); sp.set_defaults(func=cmd_capture)
+    sp.add_argument("--tag", default="recon", choices=sorted(capture._TAGS),
+                    help="evidence category (controls which folder it lands in)")
+    sp.set_defaults(func=cmd_capture)
 
     sp = sub.add_parser("note", help="append a note to the engagement")
     sp.add_argument("text", nargs="?"); sp.set_defaults(func=cmd_note)
@@ -556,6 +602,10 @@ def build_parser() -> argparse.ArgumentParser:
 
     sub.add_parser("status", help="active engagement/target + knowledge").set_defaults(func=cmd_status)
     sub.add_parser("resume", help="list sessions / active state").set_defaults(func=cmd_resume)
+
+    sp = sub.add_parser("kill", help="kill a pwc tmux session (default: active engagement's)")
+    sp.add_argument("session", nargs="?", help="session name (default: active)")
+    sp.set_defaults(func=cmd_kill)
 
     sp = sub.add_parser("provider", help="provider management")
     prsub = sp.add_subparsers(dest="provider_cmd", required=True)
