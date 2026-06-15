@@ -1,0 +1,29 @@
+# Copy to ~/.config/pwc/config.toml (or run `pwc config init`).
+provider = "mock"   # "anthropic" | "openai" | "mock"
+
+[anthropic]
+# Key comes from $ANTHROPIC_API_KEY - never store secrets in this file.
+model = "claude-sonnet-4-6"
+max_tokens = 1024
+timeout = 30
+
+[openai_compat]
+base_url = "https://api.openai.com/v1"
+model = "gpt-4o-mini"
+max_tokens = 1024
+timeout = 30
+
+[workspace]
+root = "~/engagements"
+
+[privacy]
+privacy_mode = false
+include_history = true
+history_limit = 15
+max_context_chars = 6000
+
+[policy]
+confirm_dangerous = true
+double_confirm_dangerous = true
+denylist = ["rm -rf /*", "mkfs*", ":(){ :|:& };:", "dd * of=/dev/*"]
+allowlist = []

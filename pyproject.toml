@@ -1,0 +1,24 @@
+[build-system]
+requires = ["setuptools>=64"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "pentest-workspace-copilot"
+version = "0.1.0"
+description = "tmux-native, human-in-the-loop pentest workspace copilot for Kali Linux (authorized use only)."
+requires-python = ">=3.11"
+license = { text = "MIT" }
+authors = [{ name = "pwc" }]
+dependencies = []   # zero hard runtime deps; HTTP via stdlib urllib
+
+[project.optional-dependencies]
+dev = ["pytest>=7"]
+
+[project.scripts]
+pwc = "pwc.cli:main"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.setuptools.package-data]
+pwc = ["py.typed"]
