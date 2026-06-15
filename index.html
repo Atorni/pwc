@@ -1,0 +1,160 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>pwc — Pentest Workspace Copilot</title>
+  <meta name="description" content="A tmux-native, human-in-the-loop workflow accelerator for authorized penetration testing on Kali Linux." />
+  <style>
+    :root {
+      --bg: #0d1117; --surface: #161b22; --border: #30363d;
+      --text: #e6edf3; --muted: #9da7b3; --accent: #58a6ff; --green: #7ee787;
+      --warn-bg: #2d2410; --warn-text: #e3b341; --warn-border: #5c4a1a;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0; background: var(--bg); color: var(--text);
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+      line-height: 1.7; -webkit-font-smoothing: antialiased;
+    }
+    .wrap { max-width: 820px; margin: 0 auto; padding: 4rem 1.25rem 5rem; }
+    header { display: flex; align-items: center; gap: 14px; margin-bottom: 1rem; }
+    .logo {
+      width: 52px; height: 52px; border-radius: 10px; flex-shrink: 0;
+      background: #1f6feb22; border: 1px solid #1f6feb55; color: var(--accent);
+      display: flex; align-items: center; justify-content: center; font-size: 26px;
+    }
+    h1 { font-size: 1.9rem; margin: 0; font-weight: 600; }
+    .sub { color: var(--muted); margin: 0; font-size: 1rem; }
+    .lead { font-size: 1.15rem; color: var(--muted); margin: 0 0 1.25rem; }
+    .badge {
+      display: inline-block; background: var(--warn-bg); color: var(--warn-text);
+      border: 1px solid var(--warn-border); font-size: 0.82rem;
+      padding: 6px 14px; border-radius: 8px; margin-bottom: 2.5rem;
+    }
+    h2 { font-size: 1.3rem; margin: 2.75rem 0 1rem; font-weight: 600; }
+    .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 14px; }
+    .card {
+      background: var(--surface); border: 1px solid var(--border);
+      border-radius: 12px; padding: 1.1rem 1.25rem;
+    }
+    .card h3 { margin: 0 0 6px; font-size: 1.02rem; font-weight: 600; }
+    .card p { margin: 0; color: var(--muted); font-size: 0.92rem; line-height: 1.6; }
+    pre {
+      background: #010409; border: 1px solid var(--border); border-radius: 12px;
+      padding: 1.1rem 1.25rem; overflow-x: auto; font-size: 0.9rem; line-height: 1.8;
+      font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+    }
+    pre .p { color: var(--green); } pre .c { color: var(--muted); }
+    ul.cmds { list-style: none; padding: 0; margin: 0; }
+    ul.cmds li {
+      padding: 10px 0; border-bottom: 1px solid var(--border);
+      display: flex; flex-wrap: wrap; gap: 4px 12px;
+    }
+    ul.cmds li:last-child { border-bottom: none; }
+    ul.cmds code {
+      background: #010409; border: 1px solid var(--border); border-radius: 6px;
+      padding: 2px 8px; font-size: 0.86rem; color: var(--accent);
+      font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; white-space: nowrap;
+    }
+    ul.cmds span { color: var(--muted); font-size: 0.92rem; }
+    a.btn {
+      display: inline-block; background: #1f6feb; color: #fff; text-decoration: none;
+      padding: 10px 20px; border-radius: 8px; font-weight: 500; margin-top: 0.5rem;
+    }
+    a.btn:hover { background: #388bfd; }
+    a { color: var(--accent); }
+    footer {
+      margin-top: 3.5rem; padding-top: 1.5rem; border-top: 1px solid var(--border);
+      color: var(--muted); font-size: 0.85rem;
+    }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <header>
+      <div class="logo">&gt;_</div>
+      <div>
+        <h1>pwc</h1>
+        <p class="sub">Pentest Workspace Copilot</p>
+      </div>
+    </header>
+
+    <p class="lead">
+      A tmux-native, human-in-the-loop workflow accelerator for authorized
+      penetration testing on Kali Linux. It bootstraps structured engagement
+      workspaces, turns intent into reviewed commands, captures evidence,
+      remembers per-target state, and keeps a local audit trail — without ever
+      auto-running anything.
+    </p>
+
+    <span class="badge">⚠ For authorized systems, labs, and defensive/security testing only.</span>
+
+    <h2>Features</h2>
+    <div class="grid">
+      <div class="card">
+        <h3>tmux workbench</h3>
+        <p>Per-engagement sessions with notes, shell, scans, web, and logs windows.</p>
+      </div>
+      <div class="card">
+        <h3>Command copilot</h3>
+        <p>ask, run, fix, next, explain, review — natural language to reviewed commands.</p>
+      </div>
+      <div class="card">
+        <h3>Safety gate</h3>
+        <p>Local risk engine and policy controls. Nothing runs without explicit approval.</p>
+      </div>
+      <div class="card">
+        <h3>Secret redaction</h3>
+        <p>Keys, tokens, and credentials are stripped before any model call. Offline mode too.</p>
+      </div>
+      <div class="card">
+        <h3>Evidence capture</h3>
+        <p>Outputs saved into structured folders with per-target knowledge tracking.</p>
+      </div>
+      <div class="card">
+        <h3>Local-first</h3>
+        <p>Workspaces, knowledge, and an append-only audit log stay on your device.</p>
+      </div>
+    </div>
+
+    <h2>Quick start</h2>
+    <pre><span class="c"># install (pipx recommended; falls back to a venv)</span>
+<span class="p">$</span> ./install.sh
+
+<span class="c"># wire up the shell hook, then open a new shell</span>
+<span class="p">$</span> echo 'source "$HOME/.local/share/pwc/shell/pwc.bash"' &gt;&gt; ~/.bashrc
+
+<span class="c"># bootstrap an engagement and start the workbench</span>
+<span class="p">$</span> pwc init my-engagement
+<span class="p">$</span> pwc target add 10.10.10.10
+<span class="p">$</span> pwc start
+
+<span class="c"># verify everything</span>
+<span class="p">$</span> pwc doctor</pre>
+
+    <h2>Commands</h2>
+    <ul class="cmds">
+      <li><code>pwc init</code> <span>Bootstrap an engagement workspace</span></li>
+      <li><code>pwc target add</code> <span>Add and select a target</span></li>
+      <li><code>pwc start</code> <span>Create or attach the tmux workbench</span></li>
+      <li><code>pwc ask "..."</code> <span>Natural language to a proposed command</span></li>
+      <li><code>pwc run "..."</code> <span>Draft a command and offer to run it (gated)</span></li>
+      <li><code>pwc fix</code> <span>Propose a fix for the failed previous command</span></li>
+      <li><code>pwc next</code> <span>Suggest the next useful step</span></li>
+      <li><code>pwc explain</code> <span>Explain a command in plain English</span></li>
+      <li><code>pwc review</code> <span>Risk-review a command before running</span></li>
+      <li><code>pwc finding new</code> <span>Draft a finding from captured evidence</span></li>
+      <li><code>pwc history</code> <span>Show the local audit history</span></li>
+    </ul>
+
+    <h2>Source</h2>
+    <p>The full source, install script, shell hooks, and threat model live in the repository.</p>
+    <a class="btn" href="https://github.com/Atorni/atorni.github.io">View on GitHub →</a>
+
+    <footer>
+      pwc — Pentest Workspace Copilot · Built for authorized security work.
+    </footer>
+  </div>
+</body>
+</html>
